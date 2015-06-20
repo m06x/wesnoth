@@ -412,6 +412,13 @@ void thandler::handle_event(const SDL_Event& event)
 		case SDL_TEXTINPUT:
 			text_input(event.text.text);
 			break;
+			
+		case SDL_FINGERDOWN:
+		case SDL_FINGERUP:
+		case SDL_FINGERMOTION:
+			// TODO: do something on mobile devices?
+			break;
+		
 #else
 		case SDL_VIDEOEXPOSE:
 			draw(true);
