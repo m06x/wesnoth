@@ -457,7 +457,7 @@ static std::string get_localized_path (const std::string& file, const std::strin
 // Load overlay image and compose it with the original surface.
 static void add_localized_overlay (const std::string& ovr_file, surface &orig_surf)
 {
-	SDL_RWops *rwops = filesystem::load_RWops(ovr_file);
+	SDL_RWops *rwops = SDL_RWFromFile(ovr_file.c_str(), "rb");
 	surface ovr_surf = IMG_Load_RW(rwops, true); // SDL takes ownership of rwops
 	if (ovr_surf.null()) {
 		return;
@@ -484,7 +484,7 @@ static surface load_image_file(const image::locator &loc)
 			if (!loc_location.empty()) {
 				location = loc_location;
 			}
-			SDL_RWops *rwops = filesystem::load_RWops(location);
+			SDL_RWops *rwops = SDL_RWFromFile(location.c_str(), "rb");
 			res = IMG_Load_RW(rwops, true); // SDL takes ownership of rwops
 			// If there was no standalone localized image, check if there is an overlay.
 			if (!res.null() && loc_location.empty()) {

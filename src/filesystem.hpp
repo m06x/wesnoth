@@ -30,12 +30,8 @@
 
 class config;
 
-struct SDL_RWops;
-
 namespace filesystem {
 	
-SDL_RWops* load_RWops(const std::string &path);
-
 /** An exception object used when an IO error occurs */
 struct io_exception : public game::error {
 	io_exception() : game::error("") {}

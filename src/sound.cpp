@@ -507,7 +507,7 @@ static void play_new_music()
 	if(itor == music_cache.end()) {
 		LOG_AUDIO << "attempting to insert track '" << filename << "' into cache\n";
 
-		SDL_RWops *rwops = filesystem::load_RWops(filename);
+		SDL_RWops *rwops = SDL_RWFromFile(filename.c_str(), "rb");
 		Mix_Music* const music = Mix_LoadMUSType_RW(rwops, MUS_NONE, true); // SDL takes ownership of rwops
 
 		if(music == NULL) {
@@ -733,7 +733,7 @@ static Mix_Chunk* load_chunk(const std::string& file, channel_group group)
 		std::string const &filename = filesystem::get_binary_file_location("sounds", file);
 
 		if (!filename.empty()) {
-			SDL_RWops *rwops = filesystem::load_RWops(filename);
+			SDL_RWops *rwops = SDL_RWFromFile(filename.c_str(), "rb");
 			temp_chunk.set_data(Mix_LoadWAV_RW(rwops, true)); // SDL takes ownership of rwops
 		} else {
 			ERR_AUDIO << "Could not load sound file '" << file << "'." << std::endl;
