@@ -268,7 +268,7 @@ static TTF_Font* open_font_impl(const std::string & fname, int size) {
 		}
 	}
 
-	SDL_RWops *rwops = filesystem::load_RWops(name);
+	SDL_RWops *rwops = SDL_RWFromFile(name.c_str(), "rb"); // TODO: use custom?
 	TTF_Font* font = TTF_OpenFontRW(rwops, true, size); // SDL takes ownership of rwops
 	if(font == NULL) {
 		ERR_FT << "Failed opening font: '" <<  fname << "'\n";
