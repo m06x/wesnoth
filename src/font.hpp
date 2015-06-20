@@ -18,7 +18,6 @@
 #include "font_options.hpp"
 
 #include "sdl/utils.hpp"
-#include "sdl/image.hpp"
 
 #include <SDL_ttf.h>
 

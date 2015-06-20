@@ -17,7 +17,6 @@
 
 #include "map_location.hpp"
 #include "sdl/utils.hpp"
-#include "sdl/image.hpp"
 #include "terrain_translation.hpp"
 #include "game_config.hpp"
 
@@ -124,17 +123,10 @@ namespace image {
 
 	surface load_from_disk(const locator &loc);
 
-#ifdef SDL_GPU
-	sdl::timage load_texture(const locator &loc);
-#endif
-
 	size_t hash_value(const locator::value&);
 
 
 	typedef cache_type<surface> image_cache;
-#ifdef SDL_GPU
-	typedef cache_type<sdl::timage> texture_cache;
-#endif
 	typedef cache_type<bool> bool_cache;
 
 	typedef std::map<t_translation::t_terrain, surface> mini_terrain_cache_map;
@@ -154,10 +146,6 @@ namespace image {
 	typedef std::map<light_string, surface> lit_variants;
 	// lighted variants for each locator
 	typedef cache_type<lit_variants> lit_cache;
-#ifdef SDL_GPU
-	typedef std::map<light_string, sdl::timage> lit_texture_variants;
-	typedef cache_type<lit_texture_variants> lit_texture_cache;
-#endif
 
 	void flush_cache();
 
@@ -211,16 +199,10 @@ namespace image {
 	///note that this surface must be freed by the user by calling
 	///SDL_FreeSurface()
 	surface get_image(const locator& i_locator, TYPE type=UNSCALED);
-#ifdef SDL_GPU
-	sdl::timage get_texture(const locator &loc, TYPE type=UNSCALED);
-#endif
 
 	///function to get the surface corresponding to an image.
 	///after applying the lightmap encoded in ls
 	///type should be HEXED or SCALED_TO_HEX
-#ifdef SDL_GPU
-	sdl::timage get_lighted_texture(const image::locator& i_locator, const light_string& ls, TYPE type);
-#endif
 	surface get_lighted_image(const image::locator& i_locator, const light_string& ls, TYPE type);
 
 	///function to get the standard hex mask

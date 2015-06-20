@@ -57,7 +57,6 @@ namespace wb {
 #include "team.hpp"
 #include "time_of_day.hpp"
 #include "sdl/rect.hpp"
-#include "sdl/image.hpp"
 #include "theme.hpp"
 #include "video.hpp"
 #include "widgets/button.hpp"
@@ -403,9 +402,6 @@ public:
 
 	gui::button::TYPE string_to_button_type(std::string type);
 	void create_buttons();
-#ifdef SDL_GPU
-	void render_buttons();
-#endif
 	void invalidate_theme() { panelsDrawn_ = false; }
 
 	void refresh_report(std::string const &report_name, const config * new_cfg=NULL);
@@ -441,17 +437,6 @@ public:
 	 */
 	void invalidate_animations_location(const map_location& loc);
 
-#ifdef SDL_GPU
-	/**
-	 * mouseover_hex_overlay_ require a prerendered surface
-	 * and is drawn underneath the mouse's location
-	 */
-	void set_mouseover_hex_overlay(const sdl::timage& image)
-		{ mouseover_hex_overlay_ = image; }
-
-	void clear_mouseover_hex_overlay()
-		{ mouseover_hex_overlay_ = sdl::timage(); }
-#else
 	/**
 	 * mouseover_hex_overlay_ require a prerendered surface
 	 * and is drawn underneath the mouse's location
@@ -461,7 +446,6 @@ public:
 
 	void clear_mouseover_hex_overlay()
 		{ mouseover_hex_overlay_ = NULL; }
-#endif
 
 	/**
 	 * Debug function to toggle the "sunset" mode.
@@ -732,16 +716,6 @@ protected:
 
 	enum TERRAIN_TYPE { BACKGROUND, FOREGROUND};
 
-#ifdef SDL_GPU
-	std::vector<sdl::timage> get_terrain_images(const map_location &loc,
-					const std::string& timeid,
-					image::TYPE type,
-					TERRAIN_TYPE terrain_type);
-
-	std::vector<sdl::timage> get_fog_shroud_images(const map_location& loc, image::TYPE image_type);
-
-	void draw_image_for_report(sdl::timage& img, SDL_Rect& rect);
-#else
 	std::vector<surface> get_terrain_images(const map_location &loc,
 					const std::string& timeid,
 					image::TYPE type,
@@ -750,7 +724,6 @@ protected:
 	std::vector<surface> get_fog_shroud_images(const map_location& loc, image::TYPE image_type);
 
 	void draw_image_for_report(surface& img, SDL_Rect& rect);
-#endif
 
 	void scroll_to_xy(int screenxpos, int screenypos, SCROLL_TYPE scroll_type,bool force = true);
 
@@ -800,27 +773,16 @@ protected:
 
 	// Not set by the initializer:
 	std::map<std::string, SDL_Rect> reportRects_;
-#ifdef SDL_GPU
-	std::map<std::string, sdl::timage> reportImages_;
-#else
 	std::map<std::string, surface> reportSurfaces_;
-#endif
 	std::map<std::string, config> reports_;
 	std::vector<gui::button> menu_buttons_, action_buttons_;
 	std::vector<gui::zoom_slider> sliders_;
 	std::set<map_location> invalidated_;
 	std::set<map_location> previous_invalidated_;
-#ifdef SDL_GPU
-	sdl::timage mouseover_hex_overlay_;
-	// If we're transitioning from one time of day to the next,
-	// then we will use these two masks on top of all hexes when we blit.
-	sdl::timage tod_hex_mask1, tod_hex_mask2;
-#else
 	surface mouseover_hex_overlay_;
 	// If we're transitioning from one time of day to the next,
 	// then we will use these two masks on top of all hexes when we blit.
 	surface tod_hex_mask1, tod_hex_mask2;
-#endif
 	std::vector<std::string> fog_images_;
 	std::vector<std::string> shroud_images_;
 
@@ -836,13 +798,8 @@ protected:
 
 private:
 
-#ifdef SDL_GPU
-	// This surface must be freed by the caller
-	sdl::timage get_flag(const map_location& loc);
-#else
 	// This surface must be freed by the caller
 	surface get_flag(const map_location& loc);
-#endif
 
 	/** Animated flags for each team */
 	std::vector<animated<image::locator> > flags_;
@@ -902,24 +859,6 @@ public:
 		                            */
 		};
 
-#ifdef SDL_GPU
-	/**
-	 * Draw an image at a certain location.
-	 * x,y: pixel location on screen to draw the image
-	 * image: the image to draw
-	 * reverse: if the image should be flipped across the x axis
-	 * greyscale: used for instance to give the petrified appearance to a unit image
-	 * alpha: the merging to use with the background
-	 * blendto: blend to this color using blend_ratio
-	 * submerged: the amount of the unit out of 1.0 that is submerged
-	 *            (presumably under water) and thus shouldn't be drawn
-	 */
-	void render_image(int x, int y, const display::tdrawing_layer drawing_layer,
-			const map_location& loc, sdl::timage image,
-			bool hreverse=false, bool greyscale=false,
-			fixed_t alpha=ftofxp(1.0), Uint32 blendto=0,
-			double blend_ratio=0, double submerged=0.0,bool vreverse =false);
-#else
 	/**
 	 * Draw an image at a certain location.
 	 * x,y: pixel location on screen to draw the image
@@ -936,7 +875,6 @@ public:
 			bool hreverse=false, bool greyscale=false,
 			fixed_t alpha=ftofxp(1.0), Uint32 blendto=0,
 			double blend_ratio=0, double submerged=0.0,bool vreverse =false);
-#endif
 
 	/**
 	 * Draw text on a hex. (0.5, 0.5) is the center.
@@ -996,18 +934,6 @@ protected:
 	class tblit
 	{
 	public:
-#ifdef SDL_GPU
-		tblit(const tdrawing_layer layer, const map_location& loc,
-				const int x, const int y, const sdl::timage& image)
-			: x_(x), y_(y), images_(1, image), key_(loc, layer)
-		{}
-
-		tblit(const tdrawing_layer layer, const map_location& loc,
-			  const int x, const int y,
-			  const std::vector<sdl::timage>& images)
-			: x_(x), y_(y), images_(images), key_(loc, layer)
-		{}
-#else
 		tblit(const tdrawing_layer layer, const map_location& loc,
 				const int x, const int y, const surface& surf,
 				const SDL_Rect& clip)
@@ -1021,31 +947,22 @@ protected:
 			: x_(x), y_(y), surf_(surf), clip_(clip),
 			key_(loc, layer)
 		{}
-#endif
 
 		int x() const { return x_; }
 		int y() const { return y_; }
-#ifdef SDL_GPU
-		std::vector<sdl::timage> &images() { return images_; }
-#else
 		const std::vector<surface> &surf() const { return surf_; }
 		const SDL_Rect &clip() const { return clip_; }
-#endif
 
 		bool operator<(const tblit &rhs) const { return key_ < rhs.key_; }
 
 	private:
 		int x_;                      /**< x screen coordinate to render at. */
 		int y_;                      /**< y screen coordinate to render at. */
-#ifdef SDL_GPU
-		std::vector<sdl::timage> images_;
-#else
 		std::vector<surface> surf_;  /**< surface(s) to render. */
 		SDL_Rect clip_;              /**<
 									  * The clipping area of the source if
 									  * omitted the entire source is used.
 									  */
-#endif
 		drawing_buffer_key key_;
 	};
 
@@ -1053,15 +970,6 @@ protected:
 	tdrawing_buffer drawing_buffer_;
 
 public:
-#ifdef SDL_GPU
-	void drawing_buffer_add(const tdrawing_layer layer,
-							const map_location& loc, int x, int y,
-							const sdl::timage& img);
-
-	void drawing_buffer_add(const tdrawing_layer layer,
-							const map_location& loc, int x, int y,
-							const std::vector<sdl::timage> &imgs);
-#else
 	/**
 	 * Add an item to the drawing buffer. You need to update screen on affected area
 	 *
@@ -1077,7 +985,6 @@ public:
 			const map_location& loc, int x, int y,
 			const std::vector<surface> &surf,
 			const SDL_Rect &clip = SDL_Rect());
-#endif
 
 protected:
 
@@ -1089,10 +996,6 @@ protected:
 
 	/** redraw all panels associated with the map display */
 	void draw_all_panels();
-
-#ifdef SDL_GPU
-	void draw_panel_image(SDL_Rect *clip = NULL);
-#endif
 
 	/**
 	 * Initiate a redraw.
@@ -1155,11 +1058,6 @@ private:
 	arrows_map_t arrows_map_;
 
 	tod_color color_adjust_;
-
-#ifdef SDL_GPU
-	bool update_panel_image_;
-	sdl::timage panel_image_;
-#endif
 
 #if defined(__GLIBC__)
 	/** Flag for bug #17573 - this is set in the constructor **/

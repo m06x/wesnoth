@@ -20,8 +20,6 @@
 class CVideo;
 
 #include "sdl/utils.hpp"
-#include "sdl/gpu.hpp"
-#include "sdl/image.hpp"
 
 class loadscreen {
 public:
@@ -76,11 +74,7 @@ private:
 	// Data members
 	CVideo &screen_;
 	SDL_Rect textarea_;
-#ifdef SDL_GPU
-	sdl::timage logo_image_;
-#else
 	surface logo_surface_;
-#endif
 	bool logo_drawn_;
 	int pby_offset_;
 	int prcnt_;

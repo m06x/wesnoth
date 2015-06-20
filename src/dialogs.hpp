@@ -70,11 +70,7 @@ public:
 	struct details {
 		details();
 
-#ifdef SDL_GPU
-		sdl::timage image;
-#else
 		surface image;
-#endif
 	  	std::string name, type_name, race;
 		int level;
 		std::string alignment, traits;

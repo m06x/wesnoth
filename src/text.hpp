@@ -26,15 +26,6 @@
 
 #include <string>
 
-#if SDL_VERSION_ATLEAST(2,0,0)
-#include "sdl/image.hpp"
-#endif
-
-#ifdef SDL_GPU
-#include "sdl/gpu.hpp"
-#include "sdl/image.hpp"
-#endif
-
 struct language_def;
 
 namespace gui2 {
@@ -81,16 +72,6 @@ public:
 	 * redraws the surface before returning it.
 	 */
 	surface render() const;
-
-#ifdef SDL_GPU
-	/**
-	 * Returns the rendered text as a texture.
-	 *
-	 * Before rendering it tests whether a redraw is needed and if so it first
-	 * redraws the texture before returning it.
-	 */
-	sdl::timage render_as_texture() const;
-#endif
 
 	/** Returns the width needed for the text. */
 	int get_width() const;
@@ -262,9 +243,6 @@ private:
 	/** The texture to render upon used as a cache. */
 	mutable sdl::ttexture texture_;
 #else
-#ifdef SDL_GPU
-	mutable sdl::timage texture_;
-#endif
 #endif
 
 	/** The text to draw (stored as UTF-8). */

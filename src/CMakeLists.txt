@@ -41,14 +41,6 @@ endif()
 
 set(network_implementation_files network.cpp network_worker.cpp)
 
-if(ENABLE_SDL_GPU)
-	message(STATUS "Configuring SDL_gpu...")
-	add_definitions("-DSDL_GPU")
-	add_subdirectory(SDL_gpu)
-	set(sdl_gpu-lib-vc SDL_gpu.lib)
-	set(sdl_gpu-lib SDL_gpu)
-endif(ENABLE_SDL_GPU)
-
 # needed to get include paths in the subfolders correct
 include_directories( ${CMAKE_SOURCE_DIR}/src/ )
 # needed to have the generated config.h used, too
@@ -68,7 +60,6 @@ if(MSVC)
 		${SDL_LIBRARY}
 		${SDLMAIN_LIBRARY}
 		ws2_32.lib
-		${sdl_gpu-lib-vc}
 	)
 else(MSVC)
 	set(common-external-libs
@@ -76,7 +67,6 @@ else(MSVC)
 		${Boost_IOSTREAMS_LIBRARY}
 		${Boost_REGEX_LIBRARY}
 		${Boost_PROGRAM_OPTIONS_LIBRARY}
-		${sdl_gpu-lib}
 	)
 endif(MSVC)
 
@@ -409,10 +399,8 @@ set(wesnoth-sdl_SRC
 	sdl/alpha.cpp
 	sdl/exception.cpp
 	sdl/rect.cpp
-	sdl/image.cpp
 	sdl/window.cpp
 	sdl/utils.cpp
-	sdl/shader.cpp
 	xBRZ/xbrz.cpp
 )
 

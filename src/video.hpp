@@ -25,15 +25,6 @@
 #endif
 
 struct surface;
-#ifdef SDL_GPU
-#include "sdl/shader.hpp"
-#include "sdl/utils.hpp"
-
-namespace sdl
-{
-class timage;
-}
-#endif
 
 //possible flags when setting video modes
 #define FULL_SCREEN SDL_FULLSCREEN
@@ -84,18 +75,6 @@ class CVideo : private boost::noncopyable {
 
 	//blits a surface with black as alpha
 	void blit_surface(int x, int y, surface surf, SDL_Rect* srcrect=NULL, SDL_Rect* clip_rect=NULL);
-#ifdef SDL_GPU
-	GPU_Target *render_target() const;
-
-	void draw_texture(sdl::timage &texture, int x, int y);
-	void set_texture_color_modulation(int r, int g, int b, int a);
-	void set_texture_submerge(float f);
-	void set_texture_effects(int effects);
-
-	void blit_to_overlay(surface surf, int x, int y);
-	void clear_overlay_area(SDL_Rect area);
-	void clear_overlay();
-#endif
 	void flip();
 
 	surface& getSurface();
@@ -184,12 +163,6 @@ class CVideo : private boost::noncopyable {
 private:
 
 	void initSDL();
-#ifdef SDL_GPU
-	void update_overlay(SDL_Rect *rect = NULL);
-
-	sdl::shader_program shader_; 
-	surface overlay_;
-#endif
 
 	bool mode_changed_;
 

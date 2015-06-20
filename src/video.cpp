@@ -29,7 +29,6 @@
 #include "sdl/rect.hpp"
 #include "sdl/window.hpp"
 #include "video.hpp"
-#include "sdl/gpu.hpp"
 
 #include <boost/foreach.hpp>
 
@@ -67,9 +66,6 @@ resize_lock::~resize_lock()
 static unsigned int get_flags(unsigned int flags)
 {
 	/* The wanted flags for the render need to be evaluated for SDL2. */
-#ifdef SDL_GPU
-	flags |= SDL_OPENGLBLIT;
-#endif
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	// SDL under Windows doesn't seem to like hardware surfaces
 	// for some reason.
@@ -95,7 +91,7 @@ struct event {
 	bool in;
 	event(const SDL_Rect& rect, bool i) : x(i ? rect.x : rect.x + rect.w), y(rect.y), w(rect.w), h(rect.h), in(i) { }
 };
-#ifndef SDL_GPU
+
 bool operator<(const event& a, const event& b) {
 	if (a.x != b.x) return a.x < b.x;
 	if (a.in != b.in) return a.in;
@@ -107,7 +103,6 @@ bool operator<(const event& a, const event& b) {
 bool operator==(const event& a, const event& b) {
 	return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h && a.in == b.in;
 }
-#endif
 
 struct segment {
 	int x, count;
@@ -120,7 +115,6 @@ std::vector<SDL_Rect> update_rects;
 std::vector<event> events;
 std::map<int, segment> segments;
 
-#ifndef SDL_GPU
 static void calc_rects()
 {
 	events.clear();
@@ -213,19 +207,15 @@ static void calc_rects()
 		}
 	}
 }
-#endif
-
 
 bool update_all = false;
 }
 
-#ifndef SDL_GPU
 static void clear_updates()
 {
 	update_all = false;
 	update_rects.clear();
 }
-#endif
 
 namespace {
 
@@ -335,9 +325,6 @@ void update_whole_screen()
 	update_all = true;
 }
 CVideo::CVideo(FAKE_TYPES type) :
-#ifdef SDL_GPU
-	shader_(),
-#endif
 	mode_changed_(false),
 	bpp_(0),
 	fake_screen_(false),
@@ -360,43 +347,13 @@ CVideo::CVideo(FAKE_TYPES type) :
 
 void CVideo::initSDL()
 {
-#ifdef SDL_GPU
-	//800x600 is a dummy value, the actual resolution is set in setMode
-	render_target_ = GPU_Init(800, 600, GPU_DEFAULT_INIT_FLAGS);
-
-	if(render_target_ == NULL) {
-		ERR_DP << "Could not initialize window: " << SDL_GetError() << std::endl;
-		throw CVideo::error();
-	}
-
-	const std::string vertex_src = game_config::path + "/data/shaders/default.vert";
-	const std::string frag_src = game_config::path + "/data/shaders/default.frag";
-	shader_ = sdl::shader_program(vertex_src, frag_src);
-	shader_.activate();
-#else
 	const int res = SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
 
 	if(res < 0) {
 		ERR_DP << "Could not initialize SDL_video: " << SDL_GetError() << std::endl;
 		throw CVideo::error();
 	}
-#endif
 }
-
-#ifdef SDL_GPU
-void CVideo::update_overlay(SDL_Rect *rect)
-{
-	sdl::timage img(overlay_);
-	shader_.set_overlay(img);
-
-	// Re-render the appropriate screen area so that overlay change is visible
-	static sdl::timage empty(image::get_texture("images/misc/blank.png"));
-	SDL_Rect whole = sdl::create_rect(0, 0, overlay_->w, overlay_->h);
-	SDL_Rect *r = rect == NULL ? &whole : rect;
-	empty.set_scale(float(r->w) / empty.base_width(), float(r->h) / empty.base_height());
-	draw_texture(empty, r->x, r->y);
-}
-#endif
 
 CVideo::~CVideo()
 {
@@ -416,62 +373,6 @@ void CVideo::blit_surface(int x, int y, surface surf, SDL_Rect* srcrect, SDL_Rec
 	const clip_rect_setter clip_setter(target, clip_rect, clip_rect != NULL);
 	sdl_blit(surf,srcrect,target,&dst);
 }
-
-#ifdef SDL_GPU
-GPU_Target *CVideo::render_target() const
-{
-	return render_target_;
-}
-
-void CVideo::draw_texture(sdl::timage &texture, int x, int y)
-{
-	texture.draw(*this, x, y);
-}
-
-void CVideo::set_texture_color_modulation(int r, int g, int b, int a)
-{
-	shader_.set_color_mod(r, g, b, a);
-}
-
-void CVideo::set_texture_submerge(float f)
-{
-	shader_.set_submerge(f);
-}
-
-void CVideo::set_texture_effects(int effects)
-{
-	shader_.set_effects(effects);
-}
-
-void CVideo::blit_to_overlay(surface surf, int x, int y)
-{
-	if (x < 0 || y < 0 || x > overlay_->w || y > overlay_->h) {
-		return;
-	}
-	SDL_Rect r = sdl::create_rect(x, y, surf->w, surf->h);
-	SDL_BlitSurface(surf, NULL, overlay_, &r);
-	update_overlay(&r);
-}
-
-void CVideo::clear_overlay_area(SDL_Rect area)
-{
-	const Uint32 color = SDL_MapRGBA(overlay_->format, 0, 0, 0, 0);
-	Uint32 *pixels = static_cast<Uint32*>(overlay_->pixels);
-	for (int x = area.x; x<area.x + area.w; ++x) {
-		for (int y = area.y; y<area.y +area.h; ++y) {
-			const int index = y * (area.w + overlay_->pitch) + x;
-			pixels[index] = color;
-		}
-	}
-	update_overlay(&area);
-}
-
-void CVideo::clear_overlay()
-{
-	overlay_ = create_compatible_surface(overlay_, getx(), gety());
-	update_overlay();
-}
-#endif
 
 void CVideo::make_fake()
 {
@@ -563,33 +464,12 @@ int CVideo::setMode( int x, int y, int bits_per_pixel, int flags )
 
 	flags = get_flags(flags);
 	const int res = SDL_VideoModeOK( x, y, bits_per_pixel, flags );
-#ifdef SDL_GPU
-	const bool toggle_fullscreen = ((flags & FULL_SCREEN) != 0) != fullScreen;
-#endif
 
 	if( res == 0 )
 		return 0;
 
 	fullScreen = (flags & FULL_SCREEN) != 0;
-#ifdef SDL_GPU
-	//NOTE: this surface is in fact unused now. Can be removed when possible.
-	frameBuffer = SDL_CreateRGBSurface(SDL_SWSURFACE, x, y, 32,
-									 0x00ff0000,
-									 0x0000ff00,
-									 0x000000ff,
-									 0xff000000);
-	overlay_ = SDL_CreateRGBSurface(SDL_SWSURFACE, x, y, 32,
-									0x00ff0000,
-									0x0000ff00,
-									0x000000ff,
-									0xff000000);
-	GPU_SetWindowResolution(x, y);
-	if (toggle_fullscreen) {
-		GPU_ToggleFullscreen(1);
-	}
-#else
 	frameBuffer = SDL_SetVideoMode( x, y, bits_per_pixel, flags );
-#endif
 
 	if( frameBuffer != NULL ) {
 		image::set_pixel_format(frameBuffer->format);
@@ -607,30 +487,18 @@ bool CVideo::modeChanged()
 
 int CVideo::getx() const
 {
-#ifdef SDL_GPU
-	return GPU_GetContextTarget()->w;
-#else
 	return frameBuffer->w;
-#endif
 }
 
 int CVideo::gety() const
 {
-#ifdef SDL_GPU
-	return GPU_GetContextTarget()->h;
-#else
 	return frameBuffer->h;
-#endif
 }
 
 void CVideo::flip()
 {
 	if(fake_screen_)
 		return;
-#ifdef SDL_GPU
-	assert(render_target_);
-	GPU_Flip(render_target_);
-#else
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 	if(update_all) {
 		::SDL_Flip(frameBuffer);
@@ -645,7 +513,6 @@ void CVideo::flip()
 #else
 	assert(window);
 	window->render();
-#endif
 #endif
 }
 

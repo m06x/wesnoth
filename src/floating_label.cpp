@@ -75,80 +75,6 @@ int floating_label::xpos(size_t width) const
 	return xpos;
 }
 
-#if 0
-sdl::timage floating_label::create_image()
-{
-	if (img_.null()) {
-		font::ttext text;
-		text.set_foreground_color((color_.r << 24) | (color_.g << 16) | (color_.b << 8) | 255);
-		text.set_font_size(font_size_);
-		text.set_maximum_width(width_ < 0 ? clip_rect_.w : width_);
-		text.set_maximum_height(height_ < 0 ? clip_rect_.h : height_, true);
-
-		//ignore last '\n'
-		if(!text_.empty() && *(text_.rbegin()) == '\n'){
-			text.set_text(std::string(text_.begin(), text_.end()-1), use_markup_);
-		} else {
-			text.set_text(text_, use_markup_);
-		}
-
-		surface foreground = text.render();
-
-		if(foreground == NULL) {
-			ERR_FT << "could not create floating label's text" << std::endl;
-			return sdl::timage();
-		}
-
-		// combine foreground text with its background
-		if(bgalpha_ != 0) {
-			// background is a dark tooltip box
-			surface background = create_neutral_surface(foreground->w + border_*2, foreground->h + border_*2);
-
-			if (background == NULL) {
-				ERR_FT << "could not create tooltip box" << std::endl;
-				img_ = sdl::timage(foreground);
-				return img_;
-			}
-
-			Uint32 color = SDL_MapRGBA(foreground->format, bgcolor_.r,bgcolor_.g, bgcolor_.b, bgalpha_);
-			sdl::fill_rect(background,NULL, color);
-
-			// we make the text less transparent, because the blitting on the
-			// dark background will darken the anti-aliased part.
-			// This 1.13 value seems to restore the brightness of version 1.4
-			// (where the text was blitted directly on screen)
-			foreground = adjust_surface_alpha(foreground, ftofxp(1.13), false);
-
-			SDL_Rect r = sdl::create_rect( border_, border_, 0, 0);
-			SDL_SetAlpha(foreground,SDL_SRCALPHA,SDL_ALPHA_OPAQUE);
-			blit_surface(foreground, NULL, background, &r);
-
-			img_ = sdl::timage(background);
-		}
-		else {
-			// background is blurred shadow of the text
-			surface background = create_neutral_surface
-				(foreground->w + 4, foreground->h + 4);
-			sdl::fill_rect(background, NULL, 0);
-			SDL_Rect r = { 2, 2, 0, 0 };
-			blit_surface(foreground, NULL, background, &r);
-			background = shadow_image(background, false);
-
-			if (background == NULL) {
-				ERR_FT << "could not create floating label's shadow" << std::endl;
-				img_ = sdl::timage(foreground);
-				return img_;
-			}
-			SDL_SetAlpha(foreground,SDL_SRCALPHA,SDL_ALPHA_OPAQUE);
-			blit_surface(foreground, NULL, background, &r);
-			img_ = sdl::timage(background);
-		}
-	}
-
-	return img_;
-}
-
-#else
 surface floating_label::create_surface()
 {
 	if (surf_.null()) {
@@ -223,32 +149,7 @@ surface floating_label::create_surface()
 
 	return surf_;
 }
-#endif
 
-#ifdef SDL_GPU
-void floating_label::draw(CVideo &video)
-{
-	if (!visible_) {
-		return;
-	}
-#if 0
-	create_image();
-	if (img_.null()) {
-		return;
-	}
-
-	video.draw_texture(img_, xpos(img_.width()), int(ypos_));
-#else
-	create_surface();
-	if (surf_.null()) {
-		return;
-	}
-
-	video.blit_to_overlay(surf_, xpos(surf_->w), int(ypos_));
-#endif
-}
-
-#else
 void floating_label::draw(surface screen)
 {
 	if(!visible_) {
@@ -279,15 +180,7 @@ void floating_label::draw(surface screen)
 
 	update_rect(rect);
 }
-#endif
 
-#ifdef SDL_GPU
-void floating_label::undraw(CVideo &video)
-{
-	SDL_Rect r = sdl::create_rect(xpos(surf_->w), ypos_, surf_->w, surf_->h);
-	video.clear_overlay_area(r);
-}
-#else
 void floating_label::undraw(surface screen)
 {
 	if(screen == NULL || buf_ == NULL) {
@@ -309,7 +202,6 @@ void floating_label::undraw(surface screen)
 		}
 	}
 }
-#endif
 
 int add_floating_label(const floating_label& flabel)
 {
@@ -363,29 +255,17 @@ void show_floating_label(int handle, bool value)
 SDL_Rect get_floating_label_rect(int handle)
 {
 	const label_map::iterator i = labels.find(handle);
-#if 0
-	if(i != labels.end()) {
-		const sdl::timage img = i->second.create_image();
-		if(!img.null()) {
-			return sdl::create_rect(0, 0, img.width(), img.height());
-		}
-	}
-#else
 	if(i != labels.end()) {
 		const surface surf = i->second.create_surface();
 		if(surf != NULL) {
 			return sdl::create_rect(0, 0, surf->w, surf->h);
 		}
 	}
-#endif
 	return sdl::empty_rect;
 }
 
 floating_label_context::floating_label_context()
 {
-#ifdef SDL_GPU
-
-#else
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	surface const screen = NULL;
 #else
@@ -394,7 +274,6 @@ floating_label_context::floating_label_context()
 	if(screen != NULL) {
 		draw_floating_labels(screen);
 	}
-#endif
 
 	label_contexts.push(std::set<int>());
 }
@@ -408,9 +287,6 @@ floating_label_context::~floating_label_context()
 
 	label_contexts.pop();
 
-#ifdef SDL_GPU
-	//TODO
-#else
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	surface const screen = NULL;
 #else
@@ -419,48 +295,8 @@ floating_label_context::~floating_label_context()
 	if(screen != NULL) {
 		undraw_floating_labels(screen);
 	}
-#endif
 }
 
-#ifdef SDL_GPU
-void draw_floating_labels(CVideo &video)
-{
-	if(label_contexts.empty()) {
-		return;
-	}
-
-	const std::set<int>& context = label_contexts.top();
-
-	//draw the labels in the order they were added, so later added labels (likely to be tooltips)
-	//are displayed over earlier added labels.
-	for(label_map::iterator i = labels.begin(); i != labels.end(); ++i) {
-		if(context.count(i->first) > 0) {
-			i->second.draw(video);
-		}
-	}
-}
-
-void undraw_floating_labels(CVideo &video)
-{
-	if(label_contexts.empty()) {
-		return;
-	}
-
-	std::set<int>& context = label_contexts.top();
-
-	//remove expired labels
-	for(label_map::iterator j = labels.begin(); j != labels.end(); ) {
-		if(context.count(j->first) > 0 && j->second.expired()) {
-			j->second.undraw(video);
-			context.erase(j->first);
-			labels.erase(j++);
-		} else {
-			++j;
-		}
-	}
-}
-
-#else
 void draw_floating_labels(surface screen)
 {
 	if(label_contexts.empty()) {
@@ -504,6 +340,5 @@ void undraw_floating_labels(surface screen)
 		}
 	}
 }
-#endif
 }
 

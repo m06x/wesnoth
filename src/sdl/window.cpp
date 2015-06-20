@@ -17,7 +17,6 @@
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 
 #include "sdl/exception.hpp"
-#include "sdl/image.hpp"
 
 #include <SDL_render.h>
 
