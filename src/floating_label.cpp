@@ -119,13 +119,13 @@ surface floating_label::create_surface()
 			foreground = adjust_surface_alpha(foreground, ftofxp(1.13), false);
 
 			SDL_Rect r = sdl::create_rect( border_, border_, 0, 0);
-			SDL_SetAlpha(foreground,SDL_SRCALPHA,SDL_ALPHA_OPAQUE);
+			SDL_SetSurfaceAlphaMod(foreground, SDL_ALPHA_OPAQUE);
 			blit_surface(foreground, NULL, background, &r);
 
 			surf_ = create_optimized_surface(background);
 			// RLE compression seems less efficient for big semi-transparent area
 			// so, remove it for this case, but keep the optimized display format
-			SDL_SetAlpha(surf_,SDL_SRCALPHA,SDL_ALPHA_OPAQUE);
+			SDL_SetSurfaceAlphaMod(surf_, SDL_ALPHA_OPAQUE);
 		}
 		else {
 			// background is blurred shadow of the text
@@ -141,7 +141,7 @@ surface floating_label::create_surface()
 				surf_ = create_optimized_surface(foreground);
 				return surf_;
 			}
-			SDL_SetAlpha(foreground,SDL_SRCALPHA,SDL_ALPHA_OPAQUE);
+			SDL_SetSurfaceAlphaMod(foreground, SDL_ALPHA_OPAQUE);
 			blit_surface(foreground, NULL, background, &r);
 			surf_ = create_optimized_surface(background);
 		}

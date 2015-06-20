@@ -17,6 +17,7 @@
 
 #include "font_options.hpp"
 #include "sdl/utils.hpp"
+#include "sdl/texture.hpp"
 #include "serialization/unicode_types.hpp"
 
 #include <boost/noncopyable.hpp>

@@ -17,6 +17,7 @@
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 
 #include "sdl/exception.hpp"
+#include "sdl/texture.hpp"
 
 #include <SDL_render.h>
 

@@ -107,7 +107,6 @@ opts.AddVariables(
     BoolVariable("lockfile", "Create a lockfile to prevent multiple instances of scons from being run at the same time on this working copy.", False),
     BoolVariable("OS_ENV", "Forward the entire OS environment to scons", False),
     BoolVariable("history", "Clear to disable GNU history support in lua console", True),
-    BoolVariable("sdl2", "Build with SDL2 support (experimental!)", False)
     )
 
 #
@@ -344,31 +343,17 @@ if env["prereqs"]:
         conf.CheckLib("vorbis")
         conf.CheckLib("mikmod")
 
-    if env['sdl2']:
-        def have_sdl_net():
-            return \
-                conf.CheckSDL(require_version = '2.0.0') & \
-                conf.CheckSDL("SDL2_net", header_file = "SDL_net")
+    def have_sdl_net():
+        return \
+            conf.CheckSDL(require_version = '2.0.0') & \
+            conf.CheckSDL("SDL2_net", header_file = "SDL_net")
 
-        def have_sdl_other():
-            return \
-                conf.CheckSDL(require_version = '2.0.0') & \
-                conf.CheckSDL("SDL2_ttf", header_file = "SDL_ttf") & \
-                conf.CheckSDL("SDL2_mixer", header_file = "SDL_mixer") & \
-                conf.CheckSDL("SDL2_image", header_file = "SDL_image")
-
-    else:
-        def have_sdl_net():
-            return \
-                conf.CheckSDL(require_version = '1.2.10') & \
-                conf.CheckSDL('SDL_net')
-
-        def have_sdl_other():
-            return \
-                conf.CheckSDL(require_version = '1.2.10') & \
-                conf.CheckSDL("SDL_ttf", require_version = "2.0.8") & \
-                conf.CheckSDL("SDL_mixer", require_version = '1.2.12') & \
-                conf.CheckSDL("SDL_image", require_version = '1.2.0')
+    def have_sdl_other():
+        return \
+            conf.CheckSDL(require_version = '2.0.0') & \
+            conf.CheckSDL("SDL2_ttf", header_file = "SDL_ttf") & \
+            conf.CheckSDL("SDL2_mixer", header_file = "SDL_mixer") & \
+            conf.CheckSDL("SDL2_image", header_file = "SDL_image")
 
     if env["libintl"]:
         def have_i18n_prereqs():
@@ -531,8 +516,9 @@ for env in [test_env, client_env, env]:
     if env["PLATFORM"] == 'win32':
         env.Append(LIBS = ["wsock32", "iconv", "z"], CCFLAGS = ["-mthreads"], LINKFLAGS = ["-mthreads"], CPPDEFINES = ["_WIN32_WINNT=0x0500"])
 
-    if env["PLATFORM"] == 'darwin':            # Mac OS X
-        env.Append(FRAMEWORKS = "Carbon")            # Carbon GUI
+    if env["PLATFORM"] == 'darwin': # Mac OS X
+        env.Append(FRAMEWORKS = ["Carbon", "Foundation"])
+        env.Append(LIBS = "objc")
 
 if not env['static_test']:
     test_env.Append(CPPDEFINES = "BOOST_TEST_DYN_LINK")

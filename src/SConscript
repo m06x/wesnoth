@@ -163,6 +163,7 @@ libcampaignd = env.Library("campaignd", libcampaignd_sources, OBJPREFIX = "campa
 
 libwesnoth_sdl_sources = Split("""
     sdl/utils.cpp
+    sdl/texture.cpp
     sdl/alpha.cpp
     sdl/exception.cpp
     sdl/rect.cpp
@@ -259,6 +260,7 @@ wesnoth_sources = Split("""
     controller_base.cpp
     countdown_clock.cpp
     game_initialization/create_engine.cpp
+    desktop/clipboard.cpp
     desktop/notifications.cpp
     desktop/open.cpp
     game_initialization/depcheck.cpp
@@ -728,6 +730,7 @@ wesmage_sources = Split("""
     tools/dummy_video.cpp
     tools/exploder_utils.cpp
     sdl/utils.cpp
+    sdl/texture.cpp
     sdl/alpha.cpp
     sdl/window.cpp
     tracer.cpp
@@ -778,6 +781,7 @@ create_images_sources = Split("""
     tools/dummy_video.cpp
     tools/exploder_utils.cpp
     sdl/utils.cpp
+    sdl/texture.cpp
     sdl/alpha.cpp
     sdl/window.cpp
     tracer.cpp
