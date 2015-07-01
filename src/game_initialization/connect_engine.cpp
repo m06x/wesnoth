@@ -175,6 +175,7 @@ connect_engine::connect_engine(saved_game& state,
 		era_factions_.push_back(&era);
 	}
 
+	game_config::add_color_info(scenario());
 	// Create side engines.
 	int index = 0;
 	BOOST_FOREACH(const config &s, sides) {
@@ -836,7 +837,6 @@ side_engine::side_engine(const config& cfg, connect_engine& parent_engine,
 	current_controller_index_(0),
 	controller_options_(),
 	allow_player_(cfg["allow_player"].to_bool(true)),
-	allow_changes_(!parent_.params_.saved_game && cfg["allow_changes"].to_bool(true)),
 	controller_lock_(cfg["controller_lock"].to_bool(
 		parent_.force_lock_settings_) && parent_.params_.use_map_settings),
 	index_(index),
@@ -847,11 +847,12 @@ side_engine::side_engine(const config& cfg, connect_engine& parent_engine,
 	reserved_for_(cfg["current_player"]),
 	player_id_(),
 	ai_algorithm_(),
-	waiting_to_choose_faction_(allow_changes_),
 	chose_random_(cfg["chose_random"].to_bool(false)),
 	disallow_shuffle_(cfg["disallow_shuffle"].to_bool(false)),
 	flg_(parent_.era_factions_, cfg_, parent_.force_lock_settings_,
-		parent_.params_.use_map_settings, parent_.params_.saved_game, color_),
+		parent_.params_.use_map_settings, parent_.params_.saved_game),
+	allow_changes_(!parent_.params_.saved_game && !(flg_.choosable_factions().size() == 1 && flg_.choosable_leaders().size() == 1 && flg_.choosable_genders().size() == 1)),
+	waiting_to_choose_faction_(allow_changes_),
 	custom_color_()
 {
 	// Check if this side should give its control to some other side.
@@ -962,7 +963,7 @@ config side_engine::new_config() const
 	// Save default "recruit" so that correct faction lists would be
 	// initialized by flg_manager when the new side config is sent over network.
 	// In case recruit list was empty, set a flag to indicate that.
-	res["default_recruit"] = cfg_["recruit"];
+	res["default_recruit"] = cfg_["recruit"].str();
 	if (res["default_recruit"].empty()) {
 		res["no_recruit"] = true;
 	}
@@ -987,7 +988,7 @@ config side_engine::new_config() const
 	res["controller"] = controller_names[controller_];
 	if(player_id_ == preferences::login() && res["controller"] == "network") {
 		// the hosts rveices the serversided controller wteaks after the start event, but 
-		// for my sync it's very important that the controller types are correct 
+		// for mp sync it's very important that the controller types are correct 
 		// during the start/prestart event (otherwse random unit creation during prestart fails).
 		res["controller"] = "human";
 	}
@@ -1343,8 +1344,11 @@ std::vector<std::string> side_engine::get_colors() const
 	return res;
 }
 
-std::string side_engine::get_color(size_t index) const
+std::string side_engine::get_color(int index) const
 {
+	if(index == -1) {
+		index = color();
+	}
 	if(!custom_color_.empty()) {
 		if(index == 0) {
 			return custom_color_;
