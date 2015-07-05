@@ -884,7 +884,7 @@ void menu::column_widths_item(const std::vector<std::string>& row, std::vector<i
 
 		if(col == widths.size()) {
 			widths.push_back(res.w + text_trailing_space);
-		} else if(res.w > widths[col] - text_trailing_space) {
+		} else if((int)res.w > widths[col] - (int)text_trailing_space) {
 			widths[col] = res.w + text_trailing_space;
 		}
 	}

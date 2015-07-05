@@ -31,7 +31,7 @@ twindow::twindow(const std::string& title,
 				 const int h,
 				 const Uint32 window_flags,
 				 const Uint32 render_flags)
-	: window_(SDL_CreateWindow(title.c_str(), x, y, w, h, window_flags))
+	: window_(SDL_CreateWindow(title.c_str(), x, y, w, h, window_flags | SDL_WINDOW_ALLOW_HIGHDPI))
 	, pixel_format_(SDL_PIXELFORMAT_UNKNOWN)
 {
 	if(!window_) {
@@ -64,6 +64,14 @@ twindow::~twindow()
 		SDL_DestroyWindow(window_);
 	}
 }
+
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+void twindow::get_drawable_size(int &w, int &h)
+{
+	// TODO: check for errors
+	SDL_GL_GetDrawableSize(window_, &w, &h);
+}
+#endif
 
 void twindow::set_size(const int w, const int h)
 {

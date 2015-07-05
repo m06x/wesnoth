@@ -372,7 +372,7 @@ void unit_drawer::draw_bar(const std::string& image, int xpos, int ypos,
 		bar_loc = scaled_bar_loc;
 	}
 
-	if(height > bar_loc.h) {
+	if((int)height > bar_loc.h) {
 		height = bar_loc.h;
 	}
 

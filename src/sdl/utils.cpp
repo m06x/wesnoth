@@ -1743,12 +1743,12 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 	const unsigned pixel_offset = rect.y * surf->w + rect.x;
 
 	surface_lock lock(surf);
-	for(unsigned y = 0; y < rect.h; ++y) {
+	for(unsigned y = 0; y < (unsigned)rect.h; ++y) {
 		const Uint32* front = &queue[0];
 		Uint32* back = &queue[0];
 		Uint32 red = 0, green = 0, blue = 0, avg = 0;
 		Uint32* p = lock.pixels() + pixel_offset + y * surf->w;
-		for(unsigned x = 0; x <= depth && x < rect.w; ++x, ++p) {
+		for(unsigned x = 0; x <= depth && x < (unsigned)rect.w; ++x, ++p) {
 			red += ((*p) >> 16)&0xFF;
 			green += ((*p) >> 8)&0xFF;
 			blue += (*p)&0xFF;
@@ -1760,7 +1760,7 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 		}
 
 		p = lock.pixels() + pixel_offset + y * surf->w;
-		for(unsigned x = 0; x < rect.w; ++x, ++p) {
+		for(unsigned x = 0; x < (unsigned)rect.w; ++x, ++p) {
 			*p = 0xFF000000
 					| (std::min(red/avg,ff) << 16)
 					| (std::min(green/avg,ff) << 8)
@@ -1777,7 +1777,7 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 				}
 			}
 
-			if(x + depth+1 < rect.w) {
+			if(x + depth+1 < (unsigned)rect.w) {
 				Uint32* q = p + depth+1;
 				red += ((*q) >> 16)&0xFF;
 				green += ((*q) >> 8)&0xFF;
@@ -1791,12 +1791,12 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 		}
 	}
 
-	for(unsigned x = 0; x < rect.w; ++x) {
+	for(unsigned x = 0; x < (unsigned)rect.w; ++x) {
 		const Uint32* front = &queue[0];
 		Uint32* back = &queue[0];
 		Uint32 red = 0, green = 0, blue = 0, avg = 0;
 		Uint32* p = lock.pixels() + pixel_offset + x;
-		for(unsigned y = 0; y <= depth && y < rect.h; ++y, p += surf->w) {
+		for(unsigned y = 0; y <= depth && y < (unsigned)rect.h; ++y, p += surf->w) {
 			red += ((*p) >> 16)&0xFF;
 			green += ((*p) >> 8)&0xFF;
 			blue += *p&0xFF;
@@ -1808,7 +1808,7 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 		}
 
 		p = lock.pixels() + pixel_offset + x;
-		for(unsigned y = 0; y < rect.h; ++y, p += surf->w) {
+		for(unsigned y = 0; y < (unsigned)rect.h; ++y, p += surf->w) {
 			*p = 0xFF000000
 					| (std::min(red/avg,ff) << 16)
 					| (std::min(green/avg,ff) << 8)
@@ -1825,7 +1825,7 @@ void blur_surface(surface& surf, SDL_Rect rect, unsigned depth)
 				}
 			}
 
-			if(y + depth+1 < rect.h) {
+			if(y + depth+1 < (unsigned)rect.h) {
 				Uint32* q = p + (depth+1)*surf->w;
 				red += ((*q) >> 16)&0xFF;
 				green += ((*q) >> 8)&0xFF;

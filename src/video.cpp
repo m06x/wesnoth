@@ -92,6 +92,8 @@ struct event {
 	event(const SDL_Rect& rect, bool i) : x(i ? rect.x : rect.x + rect.w), y(rect.y), w(rect.w), h(rect.h), in(i) { }
 };
 
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
+
 bool operator<(const event& a, const event& b) {
 	if (a.x != b.x) return a.x < b.x;
 	if (a.in != b.in) return a.in;
@@ -104,6 +106,8 @@ bool operator==(const event& a, const event& b) {
 	return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h && a.in == b.in;
 }
 
+#endif
+
 struct segment {
 	int x, count;
 	segment() : x(0), count(0) { }
@@ -114,6 +118,8 @@ struct segment {
 std::vector<SDL_Rect> update_rects;
 std::vector<event> events;
 std::map<int, segment> segments;
+
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 
 static void calc_rects()
 {
@@ -208,14 +214,20 @@ static void calc_rects()
 	}
 }
 
+#endif
+
 bool update_all = false;
 }
+
+#if !SDL_VERSION_ATLEAST(2, 0, 0)
 
 static void clear_updates()
 {
 	update_all = false;
 	update_rects.clear();
 }
+
+#endif
 
 namespace {
 
@@ -252,8 +264,11 @@ surface display_format_alpha(surface surf)
 	else if(frameBuffer != NULL)
 		return SDL_ConvertSurface(surf,frameBuffer->format,0);
 	else
-#endif
 		return NULL;
+#else
+	(void)surf;
+	return NULL;
+#endif
 }
 
 surface get_video_surface()
@@ -407,6 +422,10 @@ int CVideo::bppForMode( int x, int y, int flags)
 int CVideo::modePossible( int x, int y, int bits_per_pixel, int flags, bool current_screen_optimal )
 {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+	(void)x;
+	(void)y;
+	(void)flags;
+	(void)current_screen_optimal;
 	return bits_per_pixel;
 #else
 	int bpp = SDL_VideoModeOK( x, y, bits_per_pixel, get_flags(flags) );

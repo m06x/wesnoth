@@ -83,6 +83,16 @@ public:
 
 	/***** ***** ***** Operations. ***** ***** *****/
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	/**
+	 * Wrapper for @ref SDL_GL_GetDrawableSize.
+	 *
+	 * @param w                   Used as w for @ref SDL_GL_GetDrawableSize.
+	 * @param h                   Used as h for @ref SDL_GL_GetDrawableSize.
+	 */
+	void get_drawable_size(int &w, int &h);
+#endif
+
 	/**
 	 * Wrapper for @ref SDL_SetWindowSize.
 	 *
