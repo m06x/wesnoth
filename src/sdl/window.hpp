@@ -55,6 +55,12 @@ class ttexture;
 class twindow : private boost::noncopyable
 {
 public:
+	/**
+	 * The singleton instance. Not thread-safe! NULL if no window
+	 * has been created or the window was explicitly deleted
+	 */
+	static twindow *instance();
+	
 	/***** ***** ***** Constructor and destructor. ***** ***** *****/
 
 	/**
@@ -88,10 +94,18 @@ public:
 	 * Wrapper for @ref SDL_GL_GetDrawableSize.
 	 *
 	 * @param w                   Used as w for @ref SDL_GL_GetDrawableSize.
-	 * @param h                   Used as h for @ref SDL_GL_GetDrawableSize.
+	 * @param h                   Used as x for @ref SDL_GL_GetDrawableSize.
 	 */
-	void get_drawable_size(int &w, int &h);
+	void get_drawable_size(int &w, int &h) const;
 #endif
+
+	/**
+	 * Wrapper for @ref SDL_GetWindowSize.
+	 *
+	 * @param w                   Used as w for @ref SDL_GetWindowSize.
+	 * @param h                   Used as x for @ref SDL_GetWindowSize.
+	 */
+	void get_size(int &w, int &h) const;
 
 	/**
 	 * Wrapper for @ref SDL_SetWindowSize.
@@ -190,7 +204,6 @@ public:
 	 */
 	void draw(ttexture& texture, const int x, const int y);
 
-
 	/***** ***** ***** Conversion operators. ***** ***** *****/
 
 	/**
@@ -198,8 +211,6 @@ public:
 	 */
 	operator SDL_Window*();
 
-
-private:
 	/**
 	 * Conversion operator to a SDL_Renderer*.
 	 *
@@ -207,6 +218,7 @@ private:
 	 */
 	operator SDL_Renderer*();
 
+private:
 	/***** ***** ***** Members. ***** ***** *****/
 
 	/** The @ref SDL_Window we own. */
@@ -214,6 +226,9 @@ private:
 
 	/** The preferred pixel format for the renderer. */
 	Uint32 pixel_format_;
+	
+	/** The singleton instance */
+	static twindow *instance_;
 };
 
 } // namespace sdl

@@ -19,6 +19,7 @@
 #include "gui/auxiliary/log.hpp"
 #include "gui/widgets/settings.hpp"
 #include "sdl/rect.hpp"
+#include "sdl/window.hpp"
 
 #include "formula_string_utils.hpp"
 
@@ -146,10 +147,22 @@ game_logic::map_formula_callable get_screen_size_variables()
 
 tpoint get_mouse_position()
 {
+	int scale_x = 1, scale_y = 1;
+	
+#if defined(__APPLE__)
+	// OS X allows fractional coordinates so we have to rescale them
+	sdl::twindow *window = sdl::twindow::instance();
+	int w, h, draw_w, draw_h;
+	window->get_size(w, h);
+	window->get_drawable_size(draw_w, draw_h);
+	scale_x = draw_w / w;
+	scale_y = draw_h / h;
+#endif
+	
 	int x, y;
 	SDL_GetMouseState(&x, &y);
 
-	return tpoint(x, y);
+	return tpoint(scale_x * x, scale_y * y);
 }
 
 std::string debug_truncate(const std::string& text)

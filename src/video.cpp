@@ -28,6 +28,8 @@
 #include "sdl/utils.hpp"
 #include "sdl/rect.hpp"
 #include "sdl/window.hpp"
+#include "sdl/texture.hpp"
+#include "sdl/exception.hpp"
 #include "video.hpp"
 
 #include <boost/foreach.hpp>
@@ -39,6 +41,7 @@
 static lg::log_domain log_display("display");
 #define LOG_DP LOG_STREAM(info, log_display)
 #define ERR_DP LOG_STREAM(err, log_display)
+#define DBG_DP LOG_STREAM(debug, log_display)
 
 namespace {
 	bool fullScreen = false;
@@ -232,6 +235,7 @@ static void clear_updates()
 namespace {
 
 surface frameBuffer = NULL;
+SDL_Texture *frameBufferTexture = NULL; // ttexture is unusable
 bool fake_interactive = false;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 sdl::twindow* window = NULL;
@@ -447,27 +451,73 @@ int CVideo::modePossible( int x, int y, int bits_per_pixel, int flags, bool curr
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 int CVideo::setMode( int x, int y, int bits_per_pixel, int flags )
 {
+	// FIXME: retrofit pixel format autoselection
+	bits_per_pixel = 32;
+	
 	update_rects.clear();
 	if (fake_screen_) return 0;
 	mode_changed_ = true;
 
 	flags = get_flags(flags);
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 
 	fullScreen = (flags & FULL_SCREEN) != 0;
 
+	int pos_x = SDL_WINDOWPOS_UNDEFINED;
+	int pos_y = SDL_WINDOWPOS_UNDEFINED;
 	if(!window) {
-		window = new sdl::twindow("", 0, 0, x, y, flags, SDL_RENDERER_SOFTWARE);
+		window = new sdl::twindow(
+			"",
+			pos_x, pos_y, x, y,
+			flags, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+		);
 	} else {
 		if(fullScreen) {
 			window->full_screen();
-		} else {
-			window->set_size(x, y);
 		}
+		window->set_size(x, y);
 	}
 
-	frameBuffer = SDL_GetWindowSurface(*window);
+	// dead simple RGBA pixel format to make things easier
+	Uint32 rmask, gmask, bmask, amask;
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
+    amask = 0xff000000;
+#else
+    rmask = 0xff000000;
+    gmask = 0x00ff0000;
+    bmask = 0x0000ff00;
+    amask = 0x000000ff;
+#endif
 
-	if(frameBuffer != NULL) {
+	// we will render to an off-screen surface and then blit it with
+	// the renderer by first creating a texture from it
+	int draw_x, draw_y;
+	window->get_drawable_size(draw_x, draw_y);
+    frameBuffer = SDL_CreateRGBSurface(
+		0,
+		draw_x, draw_y, bits_per_pixel,
+        rmask, gmask, bmask, amask
+	);
+
+	if (frameBuffer != NULL) {
+		if (frameBufferTexture) {
+			SDL_DestroyTexture(frameBufferTexture);
+		}
+		
+		frameBufferTexture = SDL_CreateTexture(
+			*window,
+			SDL_PIXELFORMAT_RGBA8888,		// match the surface format
+			SDL_TEXTUREACCESS_STREAMING,	// will stream new pixels every frame
+			frameBuffer->w,
+			frameBuffer->h
+		);
+		if (!frameBufferTexture) {
+			return 0;
+		}
+		
 		image::set_pixel_format(frameBuffer->format);
 		return bits_per_pixel;
 	} else	{
@@ -518,21 +568,15 @@ void CVideo::flip()
 {
 	if(fake_screen_)
 		return;
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	if(update_all) {
-		::SDL_Flip(frameBuffer);
-	} else if(update_rects.empty() == false) {
-		calc_rects();
-		if(!update_rects.empty()) {
-			SDL_UpdateRects(frameBuffer, update_rects.size(), &update_rects[0]);
-		}
-	}
-
-	clear_updates();
-#else
 	assert(window);
+	{
+		sdl::ttexture_lock lock(frameBufferTexture);
+		lock.stream_surface(frameBuffer);
+	}
+	if (SDL_RenderCopy(*window, frameBufferTexture, NULL, NULL) != 0) {
+		throw sdl::texception("Could not copy a texture to the screen", true);
+	}
 	window->render();
-#endif
 }
 
 void CVideo::lock_updates(bool value)

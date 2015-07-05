@@ -326,16 +326,16 @@ void thandler::handle_event(const SDL_Event& event)
 
 	switch(event.type) {
 		case SDL_MOUSEMOTION:
-			mouse(SDL_MOUSE_MOTION, tpoint(event.motion.x, event.motion.y));
+			mouse(SDL_MOUSE_MOTION, get_mouse_position());
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:
-			mouse_button_down(tpoint(event.button.x, event.button.y),
+			mouse_button_down(get_mouse_position(),
 							  event.button.button);
 			break;
 
 		case SDL_MOUSEBUTTONUP:
-			mouse_button_up(tpoint(event.button.x, event.button.y),
+			mouse_button_up(get_mouse_position(),
 							event.button.button);
 			break;
 

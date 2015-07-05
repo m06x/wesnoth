@@ -24,6 +24,23 @@
 namespace sdl
 {
 
+namespace {
+	void adjust_render_size(SDL_Window *window) {
+		(void)window;
+		int draw_w, draw_h;
+		SDL_GL_GetDrawableSize(window, &draw_w, &draw_h);
+		if (SDL_RenderSetLogicalSize(SDL_GetRenderer(window), draw_w, draw_h) != 0) {
+			throw texception("Failed to set the logical render size", true);
+		}
+	}
+}
+
+twindow *twindow::instance_ = NULL;
+
+twindow *twindow::instance() {
+	return instance_;
+}
+
 twindow::twindow(const std::string& title,
 				 const int x,
 				 const int y,
@@ -31,12 +48,18 @@ twindow::twindow(const std::string& title,
 				 const int h,
 				 const Uint32 window_flags,
 				 const Uint32 render_flags)
-	: window_(SDL_CreateWindow(title.c_str(), x, y, w, h, window_flags | SDL_WINDOW_ALLOW_HIGHDPI))
-	, pixel_format_(SDL_PIXELFORMAT_UNKNOWN)
+	: pixel_format_(SDL_PIXELFORMAT_UNKNOWN)
 {
+	if (instance_) {
+		throw texception("Cannot create a second window", false);
+	}
+	
+	window_ = SDL_CreateWindow(title.c_str(), x, y, w, h, window_flags);
 	if(!window_) {
 		throw texception("Failed to create a SDL_Window object.", true);
 	}
+	
+	instance_ = this;
 
 	if(!SDL_CreateRenderer(window_, -1, render_flags)) {
 		throw texception("Failed to create a SDL_Renderer object.", true);
@@ -54,6 +77,8 @@ twindow::twindow(const std::string& title,
 	}
 
 	pixel_format_ = info.texture_formats[0];
+	
+	adjust_render_size(window_);
 
 	fill(0,0,0);
 }
@@ -63,24 +88,29 @@ twindow::~twindow()
 	if(window_) {
 		SDL_DestroyWindow(window_);
 	}
+	
+	instance_ = NULL;
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-void twindow::get_drawable_size(int &w, int &h)
-{
-	// TODO: check for errors
-	SDL_GL_GetDrawableSize(window_, &w, &h);
-}
+	void twindow::get_drawable_size(int &w, int &h) const {
+		SDL_GL_GetDrawableSize(window_, &w, &h);
+	}
 #endif
+
+void twindow::get_size(int &w, int &h) const {
+	SDL_GetWindowSize(window_, &w, &h);
+}
 
 void twindow::set_size(const int w, const int h)
 {
 	SDL_SetWindowSize(window_, w, h);
+	adjust_render_size(window_);
 }
 
 void twindow::full_screen()
 {
-	/** @todo Implement. */
+	SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN);
 }
 
 void twindow::fill(Uint8 r, Uint8 g, Uint8 b, Uint8 a)

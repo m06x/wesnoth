@@ -424,6 +424,44 @@ void ttexture::initialise_from_surface(SDL_Renderer& renderer, const int access)
 	SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
 }
 
+ttexture_lock::ttexture_lock(SDL_Texture *texture)
+	: texture_(texture)
+{
+	lock();
+}
+
+ttexture_lock::ttexture_lock(ttexture &texture)
+	: texture_(texture.texture_)
+{
+	lock();
+}
+
+void ttexture_lock::stream_surface(SDL_Surface *surf)
+{
+	int h;
+	if (SDL_QueryTexture(texture_, NULL, NULL, NULL, &h) != 0) {
+		throw texception("Could not query a texture", true);
+	}
+	memcpy(pixels, surf->pixels, pitch * h);
+}
+
+ttexture_lock::~ttexture_lock() throw()
+{
+	unlock();
+}
+
+void ttexture_lock::lock()
+{
+	if (SDL_LockTexture(texture_, NULL, &pixels, &pitch) != 0) {
+		throw texception("Could not lock a texture", true);
+	}
+}
+
+void ttexture_lock::unlock() throw()
+{
+	SDL_UnlockTexture(texture_);
+}
+
 } // namespace sdl
 
 #endif

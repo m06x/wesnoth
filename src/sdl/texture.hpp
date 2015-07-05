@@ -26,6 +26,7 @@
 
 #include <SDL_render.h>
 #include <string>
+#include <boost/noncopyable.hpp>
 
 struct surface;
 
@@ -299,6 +300,8 @@ public:
 	  * @return                   True if the handled pointer is NULL.
 	  */
 	 bool null() const;
+	 
+	 operator SDL_Texture *() const { return texture_; }
 
 private:
 	/**
@@ -359,6 +362,26 @@ private:
 	 * @param access              The access argument of the constructor.
 	 */
 	void initialise_from_surface(SDL_Renderer& renderer, const int access);
+	
+	friend class ttexture_lock;
+};
+
+class ttexture_lock : private boost::noncopyable
+{
+public:
+	explicit ttexture_lock(SDL_Texture *texture);
+	explicit ttexture_lock(ttexture &texture);
+	
+	void stream_surface(SDL_Surface *surf);
+	
+	~ttexture_lock() throw();
+private:
+	void lock();
+	void unlock() throw();
+	
+	SDL_Texture *texture_;
+	void *pixels;
+	int pitch;
 };
 
 } // namespace sdl
