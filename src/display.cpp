@@ -648,7 +648,7 @@ display::rect_of_hexes::iterator display::rect_of_hexes::end() const
 const display::rect_of_hexes display::hexes_under_rect(const SDL_Rect& r) const
 {
 	rect_of_hexes res;
-
+	
 	if (r.w<=0 || r.h<=0) {
 		// empty rect, return dummy values giving begin=end
 		res.left = 0;
@@ -1919,6 +1919,9 @@ bool display::scroll(int xmove, int ymove, bool force)
 		} else {
 			SDL_BlitSurface(screen,&srcrect,screen,&dstrect);
 		}
+#elif SDL_VERSION_ATLEAST(2, 0, 0)
+		surface screen_copy = make_neutral_surface(screen);
+		SDL_BlitSurface(screen_copy,&srcrect,screen,&dstrect);
 #else
 		SDL_BlitSurface(screen,&srcrect,screen,&dstrect);
 #endif
