@@ -37,9 +37,9 @@ std::string get_RC_suffix(const std::string&, const int)
 	return "";
 }
 #else
-std::string get_RC_suffix(const std::string& unit_color, const int color)
+std::string get_RC_suffix(const std::string& unit_color, const std::string& color)
 {
-	return "~RC(" + unit_color + ">" + lexical_cast<std::string>(color + 1) +
+	return "~RC(" + unit_color + ">" + color  +
 		")";
 }
 #endif
@@ -47,20 +47,14 @@ std::string get_RC_suffix(const std::string& unit_color, const int color)
 
 flg_manager::flg_manager(const std::vector<const config*>& era_factions,
 	const config& side, const bool lock_settings, const bool use_map_settings,
-	const bool saved_game, const int color) :
+	const bool saved_game) :
 	era_factions_(era_factions),
 	side_(side),
 	use_map_settings_(use_map_settings),
 	saved_game_(saved_game),
-	has_no_recruits_(
-		((side_.has_attribute("default_recruit") ?
-			side_["default_recruit"].empty() :
-			side_["recruit"].empty()) ||
-		side_["no_recruit"].to_bool()) &&
-		side_["previous_recruits"].empty()),
+	has_no_recruits_(get_original_recruits(side_).empty() && side_["previous_recruits"].empty()),
 	faction_lock_(side_["faction_lock"].to_bool(lock_settings) && use_map_settings),
 	leader_lock_(side_["leader_lock"].to_bool(lock_settings) && use_map_settings),
-	color_(color),
 	available_factions_(),
 	available_leaders_(),
 	available_genders_(),
@@ -151,14 +145,14 @@ void flg_manager::set_current_gender(const unsigned index)
 	current_gender_ = choosable_genders_[index];
 }
 
-void flg_manager::reset_leader_combo(gui::combo& combo_leader) const
+void flg_manager::reset_leader_combo(gui::combo& combo_leader, const std::string& color) const
 {
 	std::vector<std::string> leaders;
 	BOOST_FOREACH(const std::string& leader, choosable_leaders_) {
 		const unit_type* unit = unit_types.find(leader);
 		if (unit) {
 			leaders.push_back(IMAGE_PREFIX + unit->image() +
-				get_RC_suffix(unit->flag_rgb(), color_) +
+				get_RC_suffix(unit->flag_rgb(), color) +
 				COLUMN_SEPARATOR + unit->type_name());
 		} else if (leader == "random") {
 			leaders.push_back(IMAGE_PREFIX + random_enemy_picture +
@@ -176,7 +170,7 @@ void flg_manager::reset_leader_combo(gui::combo& combo_leader) const
 	combo_leader.set_selected(current_leader_index());
 }
 
-void flg_manager::reset_gender_combo(gui::combo& combo_gender) const
+void flg_manager::reset_gender_combo(gui::combo& combo_gender, const std::string& color) const
 {
 	const unit_type* unit = unit_types.find(current_leader_);
 
@@ -190,7 +184,7 @@ void flg_manager::reset_gender_combo(gui::combo& combo_gender) const
 				std::string gender_name = (gender == unit_race::s_female) ?
 					_("Female ♀") : _("Male ♂");
 				genders.push_back(IMAGE_PREFIX + gender_unit.image() +
-					get_RC_suffix(gender_unit.flag_rgb(), color_) +
+					get_RC_suffix(gender_unit.flag_rgb(), color) +
 					COLUMN_SEPARATOR + gender_name);
 			}
 		} else if (gender == "random") {
@@ -225,7 +219,6 @@ bool flg_manager::is_random_faction()
 // era is misconfigured.
 void flg_manager::resolve_random(rand_rng::mt_rng & rng, const std::vector<std::string> & avoid) {
 	if (is_random_faction()) {
-		assert(!faction_lock_ || side_["faction"] == "random");
 		std::vector<std::string> faction_choices, faction_excepts;
 
 		faction_choices = utils::split((*current_faction_)["choices"]);
@@ -382,7 +375,7 @@ void flg_manager::update_available_leaders()
 		}
 
 		if (!saved_game_) {
-			if ((*current_faction_)["id"] != "Random") {
+			if (!is_random_faction()) {
 				if ((*current_faction_)["id"] == "Custom") {
 					// Allow user to choose a leader from any faction.
 					BOOST_FOREACH(const config* f, available_factions_) {
@@ -533,8 +526,8 @@ int flg_manager::find_suitable_faction() const
 		search_field = "id";
 	} else if (side_["faction_from_recruit"].to_bool()) {
 		// Choose based on recruit.
-		find = utils::split(side_["default_recruit"]);
-		search_field = "default_recruit";
+		find = get_original_recruits(side_);
+		search_field = "recruit";
 	} else if (const config::attribute_value *l = side_.get("leader")) {
 		// Choose based on leader.
 		find.push_back(*l);
@@ -630,4 +623,17 @@ void flg_manager::set_current_gender(const std::string& gender)
 	}
 }
 
+std::vector<std::string> flg_manager::get_original_recruits(const config& cfg)
+{
+	if (cfg["no_recruits"].to_bool()) {
+		return std::vector<std::string>();
+	}
+	const config::attribute_value& cfg_default_recruit = cfg["default_recruit"];
+	if (!cfg_default_recruit.empty()) {
+		return utils::split(cfg_default_recruit.str());
+	}
+	else {
+		return utils::split(cfg["recruit"].str());
+	}
+}
 } // end namespace ng

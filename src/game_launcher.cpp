@@ -778,7 +778,7 @@ void game_launcher::set_tutorial()
 	state_ = saved_game();
 	state_.classification().campaign_type = game_classification::CAMPAIGN_TYPE::TUTORIAL;
 	state_.classification().campaign_define = "TUTORIAL";
-	state_.mp_settings().mp_era = "era_blank";
+	state_.mp_settings().mp_era = "era_default";
 	state_.mp_settings().show_connect = false;
 	state_.set_carryover_sides_start(
 		config_of("next_scenario", "tutorial")
@@ -1078,7 +1078,7 @@ void game_launcher::launch_game(RELOAD_GAME_DATA reload)
 		// don't show The End for multiplayer scenario
 		// change this if MP campaigns are implemented
 		if(result == LEVEL_RESULT::VICTORY && state_.classification().campaign_type != game_classification::CAMPAIGN_TYPE::MULTIPLAYER) {
-			preferences::add_completed_campaign(state_.classification().campaign);
+			preferences::add_completed_campaign(state_.classification().campaign, state_.classification().difficulty);
 			the_end(disp(), state_.classification().end_text, state_.classification().end_text_duration);
 			if(state_.classification().end_credits) {
 				about::show_about(disp(),state_.classification().campaign);

@@ -220,7 +220,7 @@ public:
 	flg_manager& flg() { return flg_; }
 
 	std::vector<std::string> get_colors() const;
-	std::string get_color(size_t index) const;
+	std::string get_color(int index = -1) const;
 	int num_colors() const;
 private:
 	side_engine(const side_engine& engine);
@@ -237,7 +237,6 @@ private:
 	std::vector<controller_option> controller_options_;
 
 	const bool allow_player_;
-	const bool allow_changes_;
 	const bool controller_lock_;
 
 	int index_;
@@ -254,10 +253,11 @@ private:
 	std::string player_id_;
 	std::string ai_algorithm_;
 
-	bool waiting_to_choose_faction_;
 	bool chose_random_;
 	bool disallow_shuffle_;
 	flg_manager flg_;
+	const bool allow_changes_;
+	bool waiting_to_choose_faction_;
 	std::string custom_color_;
 };
 

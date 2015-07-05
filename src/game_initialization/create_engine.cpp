@@ -421,7 +421,7 @@ create_engine::create_engine(game_display& disp, saved_game& state) :
 	state_.mp_settings().show_connect = connect;
 	game_config_manager::get()->load_game_config_for_create(type == game_classification::CAMPAIGN_TYPE::MULTIPLAYER);
 	//Initilialize dependency_manager_ after refreshing game config.
-	dependency_manager_.reset(new depcheck::manager(game_config_manager::get()->game_config(), disp.video()));
+	dependency_manager_.reset(new depcheck::manager(game_config_manager::get()->game_config(), type == game_classification::CAMPAIGN_TYPE::MULTIPLAYER, disp.video()));
 	//TODO the editor dir is already configurable, is the preferences value
 	filesystem::get_files_in_dir(filesystem::get_user_data_dir() + "/editor/maps", &user_map_names_,
 		NULL, filesystem::FILE_NAME_ONLY);
@@ -582,10 +582,6 @@ void create_engine::prepare_for_campaign(const std::string& difficulty)
  */
 std::string create_engine::select_campaign_difficulty(int set_value)
 {
-	const std::string difficulty_descriptions =
-		current_level().data()["difficulty_descriptions"];
-	std::vector<std::string> difficulty_options =
-		utils::split(difficulty_descriptions, ';');
 	const std::vector<std::string> difficulties =
 		utils::split(current_level().data()["difficulties"]);
 
@@ -616,9 +612,16 @@ std::string create_engine::select_campaign_difficulty(int set_value)
 	}
 	else
 	{
-		if(difficulty_options.size() != difficulties.size())
+		std::string campaign_id = current_level().data()["id"];
+		std::vector<std::string> difficulty_opts =
+			utils::split(current_level().data()["difficulty_descriptions"], ';');
+		if(difficulty_opts.size() != difficulties.size())
 		{
-			difficulty_options = difficulties;
+			difficulty_opts = difficulties;
+		}
+		std::vector<std::pair<std::string, bool> > difficulty_options;
+		for (size_t i = 0; i < difficulties.size(); i++) {
+			difficulty_options.push_back(make_pair(difficulty_opts[i], preferences::is_campaign_completed(campaign_id, difficulties[i])));
 		}
 
 		// show gui
@@ -725,13 +728,17 @@ std::vector<std::string> create_engine::levels_menu_item_names() const
 }
 
 std::vector<std::string> create_engine::extras_menu_item_names(
-	const MP_EXTRA extra_type) const
+	const MP_EXTRA extra_type, bool escape_markup) const
 {
 	std::vector<std::string> names;
 
 	BOOST_FOREACH(extras_metadata_ptr extra,
 		get_const_extras_by_type(extra_type)) {
-		names.push_back(font::NULL_MARKUP + extra->name);
+		if (escape_markup) {
+			names.push_back(font::NULL_MARKUP + extra->name);
+		} else {
+			names.push_back(extra->name);
+		}
 	}
 
 	return names;
@@ -1113,14 +1120,13 @@ void create_engine::init_extras(const MP_EXTRA extra_type)
 {
 	std::vector<extras_metadata_ptr>& extras = get_extras_by_type(extra_type);
 	const std::string extra_name = (extra_type == ERA) ? "era" : "modification";
-
-	BOOST_FOREACH(const config &extra,
-		game_config_manager::get()->game_config().child_range(extra_name)) {
-
-		const std::string& type = extra["type"];
+	ng::depcheck::component_availabilty default_availabilty = (extra_type == ERA) ? ng::depcheck::component_availabilty::MP : ng::depcheck::component_availabilty::HYBRID;
+	BOOST_FOREACH(const config &extra, game_config_manager::get()->game_config().child_range(extra_name))
+	{
+		ng::depcheck::component_availabilty type = extra["type"].to_enum(default_availabilty);
 		bool mp = state_.classification().campaign_type == game_classification::CAMPAIGN_TYPE::MULTIPLAYER;
 
-		if((type != "mp" || mp) && (type != "sp" || !mp) )
+		if((type != ng::depcheck::component_availabilty::MP || mp) && (type != ng::depcheck::component_availabilty::SP || !mp) )
 		{
 			extras_metadata_ptr new_extras_metadata(new extras_metadata());
 			new_extras_metadata->id = extra["id"].str();

@@ -58,15 +58,15 @@ const int leader_pane_border = 10;
 namespace mp {
 
 wait::leader_preview_pane::leader_preview_pane(game_display& disp,
-	ng::flg_manager& flg, const int color) :
+	ng::flg_manager& flg, const std::string& color) :
 	gui::preview_pane(disp.video()),
 	flg_(flg),
 	color_(color),
 	combo_leader_(disp, std::vector<std::string>()),
 	combo_gender_(disp, std::vector<std::string>())
 {
-	flg_.reset_leader_combo(combo_leader_);
-	flg_.reset_gender_combo(combo_gender_);
+	flg_.reset_leader_combo(combo_leader_, color_);
+	flg_.reset_gender_combo(combo_gender_, color_);
 
 	set_location(leader_pane_position);
 }
@@ -76,7 +76,7 @@ void wait::leader_preview_pane::process_event()
 	if (combo_leader_.changed() && combo_leader_.selected() >= 0) {
 		flg_.set_current_leader(combo_leader_.selected());
 
-		flg_.reset_gender_combo(combo_gender_);
+		flg_.reset_gender_combo(combo_gender_, color_);
 
 		set_dirty();
 	}
@@ -176,8 +176,8 @@ void wait::leader_preview_pane::set_selection(int selection)
 	if (selection >= 0) {
 		flg_.set_current_faction(selection);
 
-		flg_.reset_leader_combo(combo_leader_);
-		flg_.reset_gender_combo(combo_gender_);
+		flg_.reset_leader_combo(combo_leader_, color_);
+		flg_.reset_gender_combo(combo_gender_, color_);
 
 		set_dirty();
 	}
@@ -215,13 +215,10 @@ wait::wait(game_display& disp, const config& cfg, saved_game& state,
 wait::~wait()
 {
 	try {
-	if (get_result() == QUIT) {
-		state_ = saved_game();
-		state_.classification().campaign_type = game_classification::CAMPAIGN_TYPE::MULTIPLAYER;
-
-		game_config_manager::get()->
-			load_game_config_for_game(state_.classification());
-	}
+		if (get_result() == QUIT) {
+			state_ = saved_game();
+			state_.classification().campaign_type = game_classification::CAMPAIGN_TYPE::MULTIPLAYER;
+		}
 	} catch (...) {}
 }
 
@@ -298,7 +295,8 @@ void wait::join_game(bool observe)
 
 	// Add the map name to the title.
 	append_to_title(": " + get_scenario()["name"].t_str());
-
+	
+	game_config::add_color_info(get_scenario());
 	if (!observe) {
 		//search for an appropriate vacant slot. If a description is set
 		//(i.e. we're loading from a saved game), then prefer to get the side
@@ -357,10 +355,7 @@ void wait::join_game(bool observe)
 				throw config::error(_("No multiplayer sides found"));
 			}
 
-			int color = side_num;
-			const std::string color_str = (*side_choice)["color"];
-			if (!color_str.empty())
-				color = game_config::color_info(color_str).index() - 1;
+			const std::string color = (*side_choice)["color"].str();
 
 			std::vector<const config*> era_factions;
 			BOOST_FOREACH(const config &side, possible_sides) {
@@ -375,7 +370,7 @@ void wait::join_game(bool observe)
 				level_.child("multiplayer")["savegame"].to_bool();
 
 			ng::flg_manager flg(era_factions, *side_choice, lock_settings, use_map_settings,
-				saved_game, color);
+				saved_game);
 
 			std::vector<std::string> choices;
 			BOOST_FOREACH(const config *s, flg.choosable_factions())
@@ -390,7 +385,7 @@ void wait::join_game(bool observe)
 						rgb = "magenta";
 
 					choices.push_back(IMAGE_PREFIX + icon + "~RC(" + rgb + ">" +
-						lexical_cast<std::string>(color+1) + ")" + COLUMN_SEPARATOR + name);
+						color + ")" + COLUMN_SEPARATOR + name);
 				} else {
 					choices.push_back(name);
 				}
@@ -634,21 +629,7 @@ void wait::generate_menu()
 
 		str << COLUMN_SEPARATOR << t_string::from_serialized(sd["user_team_name"].str());
 
-		int disp_color = sd["color"];
-		if(!sd["color"].empty()) {
-			try {
-				disp_color = game_config::color_info(sd["color"]).index();
-			} catch(config::error&) {
-				//ignore
-			}
-		} else {
-			/**
-			 * @todo we fall back to the side color, but that's ugly rather
-			 * make the color mandatory in 1.5.
-			 */
-			disp_color = sd["side"];
-		}
-		str << COLUMN_SEPARATOR << get_color_string(disp_color - 1);
+		str << COLUMN_SEPARATOR << get_color_string(sd["color"].str());
 		details.push_back(str.str());
 	}
 
